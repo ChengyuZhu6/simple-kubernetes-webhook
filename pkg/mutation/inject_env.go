@@ -6,6 +6,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+const (
+	sealedSecretName = "sealedsecret"
+)
+
 // injectEnv is a container for the mutation injecting environment vars
 type injectEnv struct {
 	K8sClient kubernetes.Interface
@@ -25,6 +29,9 @@ func (se injectEnv) Mutate(pod *corev1.Pod) (*corev1.Pod, error) {
 	se.Logger = se.Logger.WithField("mutation", se.Name())
 	mpod := pod.DeepCopy()
 
+	se.Logger.Debugf("pod env updated %s", sealedSecretName)
+	se.UpdateEnvVar(mpod, sealedSecretName)
+
 	// build out env var slice
 	envVars := []corev1.EnvVar{{
 		Name:  "KUBE",
@@ -38,6 +45,25 @@ func (se injectEnv) Mutate(pod *corev1.Pod) (*corev1.Pod, error) {
 	}
 
 	return mpod, nil
+}
+
+func (se injectEnv) UpdateEnvVar(pod *corev1.Pod, specificEnvName string) {
+	for i, container := range pod.Spec.Containers {
+		for j, envVar := range container.Env {
+			if envVar.Name == specificEnvName {
+				//TODO get secret from etcd
+				pod.Spec.Containers[i].Env[j].Value = "sealedsecret"
+			}
+		}
+	}
+	for i, container := range pod.Spec.InitContainers {
+		for j, envVar := range container.Env {
+			if envVar.Name == specificEnvName {
+				//TODO get secret from etcd
+				pod.Spec.InitContainers[i].Env[j].Value = "sealedsecret"
+			}
+		}
+	}
 }
 
 // injectEnvVar injects a var in both containers and init containers of a pod
