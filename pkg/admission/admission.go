@@ -15,12 +15,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 )
 
 // Admitter is a container for admission business
 type Admitter struct {
-	Logger  *logrus.Entry
-	Request *admissionv1.AdmissionRequest
+	K8sClient kubernetes.Interface
+	Logger    *logrus.Entry
+	Request   *admissionv1.AdmissionRequest
 }
 
 // MutatePodReview takes an admission request and mutates the pod within,

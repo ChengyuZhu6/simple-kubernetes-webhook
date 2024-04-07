@@ -9,6 +9,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/slackhq/simple-kubernetes-webhook/pkg/admission"
+	pkgUtils "github.com/slackhq/simple-kubernetes-webhook/pkg/utils"
 	admissionv1 "k8s.io/api/admission/v1"
 )
 
@@ -52,9 +53,15 @@ func ServeValidatePods(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	k8sClient, err := pkgUtils.NewK8SClient()
+	if err != nil {
+		logrus.WithError(err).Fatalf("error creating k8s client")
+	}
+
 	adm := admission.Admitter{
-		Logger:  logger,
-		Request: in.Request,
+		K8sClient: k8sClient,
+		Logger:    logger,
+		Request:   in.Request,
 	}
 
 	out, err := adm.ValidatePodReview()
@@ -92,9 +99,15 @@ func ServeMutatePods(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	k8sClient, err := pkgUtils.NewK8SClient()
+	if err != nil {
+		logrus.WithError(err).Fatalf("error creating k8s client")
+	}
+
 	adm := admission.Admitter{
-		Logger:  logger,
-		Request: in.Request,
+		K8sClient: k8sClient,
+		Logger:    logger,
+		Request:   in.Request,
 	}
 
 	out, err := adm.MutatePodReview()
