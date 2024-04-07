@@ -5,13 +5,18 @@ import (
 	"testing"
 
 	"github.com/sirupsen/logrus"
+	pkgUtils "github.com/slackhq/simple-kubernetes-webhook/pkg/utils"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestValidatePod(t *testing.T) {
-	v := NewValidator(logger())
+	k8sClient, err := pkgUtils.NewK8SClient()
+	if err != nil {
+		logrus.WithError(err).Fatalf("error creating k8s client")
+	}
+	v := NewValidator(k8sClient, logger())
 
 	pod := &corev1.Pod{
 		ObjectMeta: v1.ObjectMeta{

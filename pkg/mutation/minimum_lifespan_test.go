@@ -3,6 +3,8 @@ package mutation
 import (
 	"testing"
 
+	"github.com/sirupsen/logrus"
+	pkgUtils "github.com/slackhq/simple-kubernetes-webhook/pkg/utils"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,8 +41,11 @@ func TestMinLifespanTolerationsNoLabel(t *testing.T) {
 			}},
 		},
 	}
-
-	got, err := minLifespanTolerations{logger()}.Mutate(pod)
+	k8sClient, err := pkgUtils.NewK8SClient()
+	if err != nil {
+		logrus.WithError(err).Fatalf("error creating k8s client")
+	}
+	got, err := minLifespanTolerations{k8sClient, logger()}.Mutate(pod)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,7 +145,11 @@ func TestMinLifespanTolerationsLabel(t *testing.T) {
 			},
 		},
 	}
-	got, err := minLifespanTolerations{logger()}.Mutate(pod)
+	k8sClient, err := pkgUtils.NewK8SClient()
+	if err != nil {
+		logrus.WithError(err).Fatalf("error creating k8s client")
+	}
+	got, err := minLifespanTolerations{k8sClient, logger()}.Mutate(pod)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -171,8 +180,11 @@ func TestMinLifespanTolerationsIdempotence(t *testing.T) {
 			},
 		},
 	}
-
-	got, err := minLifespanTolerations{logger()}.Mutate(want.DeepCopy())
+	k8sClient, err := pkgUtils.NewK8SClient()
+	if err != nil {
+		logrus.WithError(err).Fatalf("error creating k8s client")
+	}
+	got, err := minLifespanTolerations{k8sClient, logger()}.Mutate(want.DeepCopy())
 	if err != nil {
 		t.Fatal(err)
 	}

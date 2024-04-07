@@ -6,13 +6,18 @@ import (
 	"testing"
 
 	"github.com/sirupsen/logrus"
+	pkgUtils "github.com/slackhq/simple-kubernetes-webhook/pkg/utils"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestMutatePodPatch(t *testing.T) {
-	m := NewMutator(logger())
+	k8sClient, err := pkgUtils.NewK8SClient()
+	if err != nil {
+		logrus.WithError(err).Fatalf("error creating k8s client")
+	}
+	m := NewMutator(k8sClient, logger())
 	got, err := m.MutatePodPatch(pod())
 	if err != nil {
 		t.Fatal(err)
@@ -24,7 +29,11 @@ func TestMutatePodPatch(t *testing.T) {
 }
 
 func BenchmarkMutatePodPatch(b *testing.B) {
-	m := NewMutator(logger())
+	k8sClient, err := pkgUtils.NewK8SClient()
+	if err != nil {
+		logrus.WithError(err).Fatalf("error creating k8s client")
+	}
+	m := NewMutator(k8sClient, logger())
 	pod := pod()
 
 	for i := 0; i < b.N; i++ {

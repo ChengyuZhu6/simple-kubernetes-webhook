@@ -3,11 +3,13 @@ package mutation
 import (
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 // injectEnv is a container for the mutation injecting environment vars
 type injectEnv struct {
-	Logger logrus.FieldLogger
+	K8sClient kubernetes.Interface
+	Logger    logrus.FieldLogger
 }
 
 // injectEnv implements the podMutator interface
@@ -32,14 +34,14 @@ func (se injectEnv) Mutate(pod *corev1.Pod) (*corev1.Pod, error) {
 	// inject env vars into pod
 	for _, envVar := range envVars {
 		se.Logger.Debugf("pod env injected %s", envVar)
-		injectEnvVar(mpod, envVar)
+		se.injectEnvVar(mpod, envVar)
 	}
 
 	return mpod, nil
 }
 
 // injectEnvVar injects a var in both containers and init containers of a pod
-func injectEnvVar(pod *corev1.Pod, envVar corev1.EnvVar) {
+func (se injectEnv) injectEnvVar(pod *corev1.Pod, envVar corev1.EnvVar) {
 	for i, container := range pod.Spec.Containers {
 		if !HasEnvVar(container, envVar) {
 			pod.Spec.Containers[i].Env = append(container.Env, envVar)

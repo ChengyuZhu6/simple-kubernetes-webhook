@@ -6,16 +6,18 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/wI2L/jsondiff"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 // Mutator is a container for mutation
 type Mutator struct {
-	Logger *logrus.Entry
+	K8sClient kubernetes.Interface
+	Logger    *logrus.Entry
 }
 
 // NewMutator returns an initialised instance of Mutator
-func NewMutator(logger *logrus.Entry) *Mutator {
-	return &Mutator{Logger: logger}
+func NewMutator(k8sClient kubernetes.Interface, logger *logrus.Entry) *Mutator {
+	return &Mutator{K8sClient: k8sClient, Logger: logger}
 }
 
 // podMutators is an interface used to group functions mutating pods
@@ -39,8 +41,8 @@ func (m *Mutator) MutatePodPatch(pod *corev1.Pod) ([]byte, error) {
 
 	// list of all mutations to be applied to the pod
 	mutations := []podMutator{
-		minLifespanTolerations{Logger: log},
-		injectEnv{Logger: log},
+		minLifespanTolerations{K8sClient: m.K8sClient, Logger: log},
+		injectEnv{K8sClient: m.K8sClient, Logger: log},
 	}
 
 	mpod := pod.DeepCopy()

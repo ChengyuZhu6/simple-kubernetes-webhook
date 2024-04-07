@@ -7,11 +7,13 @@ import (
 
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 // minLifespanTolerations is a container for mininum lifespan mutation
 type minLifespanTolerations struct {
-	Logger logrus.FieldLogger
+	K8sClient kubernetes.Interface
+	Logger    logrus.FieldLogger
 }
 
 // minLifespanTolerations implements the podMutator interface

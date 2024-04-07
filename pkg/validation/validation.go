@@ -3,16 +3,18 @@ package validation
 import (
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 // Validator is a container for mutation
 type Validator struct {
-	Logger *logrus.Entry
+	K8sClient kubernetes.Interface
+	Logger    *logrus.Entry
 }
 
 // NewValidator returns an initialised instance of Validator
-func NewValidator(logger *logrus.Entry) *Validator {
-	return &Validator{Logger: logger}
+func NewValidator(k8sClient kubernetes.Interface, logger *logrus.Entry) *Validator {
+	return &Validator{K8sClient: k8sClient, Logger: logger}
 }
 
 // podValidators is an interface used to group functions mutating pods

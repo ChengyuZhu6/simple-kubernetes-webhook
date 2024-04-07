@@ -34,7 +34,7 @@ func (a Admitter) MutatePodReview() (*admissionv1.AdmissionReview, error) {
 		return reviewResponse(a.Request.UID, false, http.StatusBadRequest, e), err
 	}
 
-	m := mutation.NewMutator(a.Logger)
+	m := mutation.NewMutator(a.K8sClient, a.Logger)
 	patch, err := m.MutatePodPatch(pod)
 	if err != nil {
 		e := fmt.Sprintf("could not mutate pod: %v", err)
@@ -53,7 +53,7 @@ func (a Admitter) ValidatePodReview() (*admissionv1.AdmissionReview, error) {
 		return reviewResponse(a.Request.UID, false, http.StatusBadRequest, e), err
 	}
 
-	v := validation.NewValidator(a.Logger)
+	v := validation.NewValidator(a.K8sClient, a.Logger)
 	val, err := v.ValidatePod(pod)
 	if err != nil {
 		e := fmt.Sprintf("could not validate pod: %v", err)
