@@ -3,13 +3,15 @@ module github.com/slackhq/simple-kubernetes-webhook
 go 1.16
 
 require (
-	github.com/google/go-cmp v0.5.5 // indirect
-	github.com/sirupsen/logrus v1.8.1
-	github.com/stretchr/testify v1.6.1
+	github.com/go-openapi/spec v0.19.3 // indirect
+	github.com/mitchellh/mapstructure v1.1.2 // indirect
+	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
+	github.com/pkg/errors v0.9.1
+	github.com/sirupsen/logrus v1.9.3
+	github.com/stretchr/testify v1.9.0
 	github.com/wI2L/jsondiff v0.1.0
-	golang.org/x/net v0.0.0-20210614182718-04defd469f4e // indirect
-	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
-	k8s.io/api v0.21.3
-	k8s.io/apimachinery v0.21.3
+	k8s.io/api v0.29.3
+	k8s.io/apimachinery v0.29.3
+	k8s.io/client-go v0.29.3
+	sigs.k8s.io/controller-runtime v0.17.2
 )
