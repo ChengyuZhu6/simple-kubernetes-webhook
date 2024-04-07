@@ -1,13 +1,11 @@
 package mutation
 
 import (
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	pkgUtils "github.com/slackhq/simple-kubernetes-webhook/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
-)
-
-const (
-	sealedSecretName = "sealedsecret"
 )
 
 // injectEnv is a container for the mutation injecting environment vars
@@ -29,9 +27,10 @@ func (se injectEnv) Mutate(pod *corev1.Pod) (*corev1.Pod, error) {
 	se.Logger = se.Logger.WithField("mutation", se.Name())
 	mpod := pod.DeepCopy()
 
-	se.Logger.Debugf("pod env updated %s", sealedSecretName)
-	se.UpdateEnvVar(mpod, sealedSecretName)
-
+	err := se.UpdateEnvVar(mpod)
+	if err != nil {
+		return mpod, errors.Wrap(err, "failed to mutate pod, %v")
+	}
 	// build out env var slice
 	envVars := []corev1.EnvVar{{
 		Name:  "KUBE",
@@ -43,27 +42,68 @@ func (se injectEnv) Mutate(pod *corev1.Pod) (*corev1.Pod, error) {
 		se.Logger.Debugf("pod env injected %s", envVar)
 		se.injectEnvVar(mpod, envVar)
 	}
-
+	PrintEnvVar(se.Logger, mpod)
 	return mpod, nil
 }
 
-func (se injectEnv) UpdateEnvVar(pod *corev1.Pod, specificEnvName string) {
-	for i, container := range pod.Spec.Containers {
-		for j, envVar := range container.Env {
-			if envVar.Name == specificEnvName {
-				//TODO get secret from etcd
-				pod.Spec.Containers[i].Env[j].Value = "sealedsecret"
+func (se injectEnv) UpdateEnvVar(pod *corev1.Pod) error {
+	if err := se.UpdateEnvFrom(pod); err != nil {
+		return errors.Wrap(err, "failed to update envFrom")
+	}
+	se.Logger.Info("updateEnvFrom successful")
+
+	if err := se.UpdateValueFrom(pod); err != nil {
+		return errors.Wrap(err, "failed to update valueFrom")
+	}
+	se.Logger.Info("updateValueFrom successful")
+
+	return nil
+}
+
+func (se injectEnv) UpdateEnvFrom(pod *corev1.Pod) error {
+	ns := pod.GetNamespace()
+	for _, containers := range [][]corev1.Container{pod.Spec.InitContainers, pod.Spec.Containers} {
+		for i, container := range containers {
+			if len(container.EnvFrom) > 0 {
+				envFrom, err := pkgUtils.LookForEnvFrom(container.EnvFrom, ns)
+				if err != nil {
+					return errors.Wrap(err, "failed to look for envFrom")
+				}
+				containers[i].Env = append(container.Env, envFrom...)
 			}
 		}
 	}
-	for i, container := range pod.Spec.InitContainers {
-		for j, envVar := range container.Env {
-			if envVar.Name == specificEnvName {
-				//TODO get secret from etcd
-				pod.Spec.InitContainers[i].Env[j].Value = "sealedsecret"
+	return nil
+}
+
+func (se injectEnv) UpdateValueFrom(pod *corev1.Pod) error {
+	ns := pod.GetNamespace()
+	if err := se.UpdateContainerEnvValueFrom(pod.Spec.InitContainers, ns); err != nil {
+		return err
+	}
+	if err := se.UpdateContainerEnvValueFrom(pod.Spec.Containers, ns); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (se injectEnv) UpdateContainerEnvValueFrom(containers []corev1.Container, ns string) error {
+	for i, container := range containers {
+		for j, env := range container.Env {
+			if env.ValueFrom != nil {
+				valueFrom, err := pkgUtils.LookForValueFrom(env, ns)
+				if err != nil {
+					return errors.Wrap(err, "failed to look for valueFrom")
+				}
+				if valueFrom == nil {
+					continue
+				}
+				//TODO Change the value of secret
+				containers[i].Env[j] = *valueFrom
 			}
 		}
 	}
+	return nil
 }
 
 // injectEnvVar injects a var in both containers and init containers of a pod
@@ -88,4 +128,18 @@ func HasEnvVar(container corev1.Container, checkEnvVar corev1.EnvVar) bool {
 		}
 	}
 	return false
+}
+
+func PrintEnvVar(logger logrus.FieldLogger, pod *corev1.Pod) {
+	for _, container := range pod.Spec.Containers {
+		for _, envVar := range container.Env {
+			logger.Infof("Print Containers EnvVar: %s", envVar)
+		}
+	}
+	for _, container := range pod.Spec.InitContainers {
+		for _, envVar := range container.Env {
+			logger.Infof("Print InitContainers EnvVar: %s", envVar)
+		}
+	}
+
 }
