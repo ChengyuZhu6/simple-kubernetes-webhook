@@ -1,8 +1,12 @@
 package mutation
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/slackhq/simple-kubernetes-webhook/pkg/api"
 	pkgUtils "github.com/slackhq/simple-kubernetes-webhook/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
@@ -98,7 +102,16 @@ func (se injectEnv) UpdateContainerEnvValueFrom(containers []corev1.Container, n
 				if valueFrom == nil {
 					continue
 				}
-				//TODO Change the value of secret
+				if api.HasSealedSecretsPrefix(valueFrom.Value) {
+					c, err := api.CreateCDHClient()
+					if err != nil {
+						return fmt.Errorf("failed to create cdh client: %w", err)
+					}
+					defer c.Close()
+
+					unsealedValue, err := c.UnsealEnv(context.TODO(), string(valueFrom.Value))
+					valueFrom.Value = unsealedValue
+				}
 				containers[i].Env[j] = *valueFrom
 			}
 		}
